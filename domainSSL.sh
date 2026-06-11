@@ -1,6 +1,7 @@
 #!/bin/sh
 
 LEGO_URL="https://cdn.jsdelivr.net/gh/moeik/domainSSL@master/lego/lego_v3.8.0_linux_amd64.tar.gz"
+LEGO_DIR="/var/lib/domainssl/lego"
 
 case "${1:-}" in
   --renew|renew)
@@ -13,11 +14,10 @@ case "${1:-}" in
       [ -d "$domain_dir" ] || continue
       domain=$(basename "$domain_dir")
       [ -z "$domain" ] && continue
-      ./lego --email="admin@$domain" --domains="$domain" --http -a renew --days 30 2>/dev/null || true
-      if ls ./.lego/certificates 2>/dev/null | grep -q "$domain"; then
-        mkdir -p "/home/ssl/$domain"
-        cp ./.lego/certificates/$domain.crt "/home/ssl/$domain/1.pem"
-        cp ./.lego/certificates/$domain.key "/home/ssl/$domain/1.key"
+      ./lego --path="$LEGO_DIR" --email="admin@$domain" --domains="$domain" --http -a renew --days 30 2>/dev/null || true
+      if ls "$LEGO_DIR/certificates" 2>/dev/null | grep -q "$domain"; then
+        cp "$LEGO_DIR/certificates/$domain.crt" "/home/ssl/$domain/1.pem"
+        cp "$LEGO_DIR/certificates/$domain.key" "/home/ssl/$domain/1.key"
       fi
     done
     service nginx start 2>/dev/null || true
@@ -31,14 +31,15 @@ case "${1:-}" in
     fi
     tar zxvf lego_v3.8.0_linux_amd64.tar.gz
     chmod 755 *
+    mkdir -p "$LEGO_DIR"
     service nginx stop
-    ./lego --email="admin@$domain" --domains="$domain" --http -a run
+    ./lego --path="$LEGO_DIR" --email="admin@$domain" --domains="$domain" --http -a run
     service nginx start
-    if ls ./.lego/certificates | grep "$domain"
+    if ls "$LEGO_DIR/certificates" | grep "$domain"
         then
         mkdir -p /home/ssl/$domain
-        cp ./.lego/certificates/$domain.crt /home/ssl/$domain/1.pem
-        cp ./.lego/certificates/$domain.key /home/ssl/$domain/1.key
+        cp "$LEGO_DIR/certificates/$domain.crt" /home/ssl/$domain/1.pem
+        cp "$LEGO_DIR/certificates/$domain.key" /home/ssl/$domain/1.key
         path="/home/ssl/$domain/"
         echo '证书签发成功，证书文件保存在'$path'。'
         echo ""
