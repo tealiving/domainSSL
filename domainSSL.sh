@@ -9,6 +9,11 @@ case "${1:-}" in
     if [ ! -f "./lego" ]; then
       wget -q "$LEGO_URL" && tar zxf lego_v3.8.0_linux_amd64.tar.gz && chmod 755 ./* ./lego
     fi
+    # 迁移旧 /tmp/.lego/ 状态到持久化路径（仅一次）
+    if [ -d "/tmp/.lego" ] && [ ! -d "$LEGO_DIR/accounts" ]; then
+      mkdir -p "$LEGO_DIR"
+      cp -r /tmp/.lego/* "$LEGO_DIR/"
+    fi
     service nginx stop 2>/dev/null || true
     for domain_dir in /home/ssl/*/; do
       [ -d "$domain_dir" ] || continue
@@ -31,7 +36,11 @@ case "${1:-}" in
     fi
     tar zxvf lego_v3.8.0_linux_amd64.tar.gz
     chmod 755 *
-    mkdir -p "$LEGO_DIR"
+    # 迁移旧 /tmp/.lego/ 状态到持久化路径（仅一次）
+    if [ -d "/tmp/.lego" ] && [ ! -d "$LEGO_DIR/accounts" ]; then
+      mkdir -p "$LEGO_DIR"
+      cp -r /tmp/.lego/* "$LEGO_DIR/"
+    fi
     service nginx stop
     ./lego --path="$LEGO_DIR" --email="admin@$domain" --domains="$domain" --http -a run
     service nginx start
