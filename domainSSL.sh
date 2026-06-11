@@ -19,10 +19,14 @@ case "${1:-}" in
       [ -d "$domain_dir" ] || continue
       domain=$(basename "$domain_dir")
       [ -z "$domain" ] && continue
-      ./lego --path="$LEGO_DIR" --email="admin@$domain" --domains="$domain" --http -a renew --days 30 2>/dev/null || true
-      if ls "$LEGO_DIR/certificates" 2>/dev/null | grep -q "$domain"; then
-        cp "$LEGO_DIR/certificates/$domain.crt" "/home/ssl/$domain/1.pem"
-        cp "$LEGO_DIR/certificates/$domain.key" "/home/ssl/$domain/1.key"
+      if [ -f "$LEGO_DIR/certificates/$domain.crt" ]; then
+        ./lego --path="$LEGO_DIR" --email="admin@$domain" --domains="$domain" --http -a renew --days 30 2>/dev/null || true
+        if ls "$LEGO_DIR/certificates" 2>/dev/null | grep -q "$domain"; then
+          cp "$LEGO_DIR/certificates/$domain.crt" "/home/ssl/$domain/1.pem"
+          cp "$LEGO_DIR/certificates/$domain.key" "/home/ssl/$domain/1.key"
+        fi
+      else
+        echo "跳过 $domain（非 domainSSL 签发，无 lego 状态）"
       fi
     done
     service nginx start 2>/dev/null || true
